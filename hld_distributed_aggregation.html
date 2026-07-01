@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HLD — Distributed Data Aggregation System</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --border: #30363d;
+    --accent: #58a6ff;
+    --accent2: #3fb950;
+    --accent3: #f78166;
+    --accent4: #d2a8ff;
+    --accent5: #ffa657;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --tag-bg: #1f2937;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* NAV */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,17,23,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex; align-items: center; gap: 2rem;
+    height: 52px;
+  }
+  nav .logo { font-weight: 700; font-size: 15px; color: var(--accent); white-space: nowrap; }
+  nav a {
+    color: var(--text-muted); text-decoration: none; font-size: 13px;
+    padding: 4px 0; border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+    white-space: nowrap;
+  }
+  nav a:hover { color: var(--text); border-color: var(--accent); }
+
+  /* LAYOUT */
+  .page { max-width: 1100px; margin: 0 auto; padding: 2.5rem 2rem 6rem; }
+
+  /* HERO */
+  .hero {
+    text-align: center; padding: 3.5rem 0 2.5rem;
+    border-bottom: 1px solid var(--border); margin-bottom: 3rem;
+  }
+  .hero h1 { font-size: 2rem; font-weight: 700; color: var(--text); margin-bottom: .5rem; }
+  .hero .sub { color: var(--text-muted); font-size: 15px; margin-bottom: 1.2rem; }
+  .badges { display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap; }
+  .badge {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 3px 12px; font-size: 12px; font-weight: 500;
+  }
+  .badge.blue  { color: var(--accent);  border-color: #1f4068; }
+  .badge.green { color: var(--accent2); border-color: #1a3a1a; }
+  .badge.red   { color: var(--accent3); border-color: #3d1f1f; }
+  .badge.purple{ color: var(--accent4); border-color: #2d1f4d; }
+  .badge.orange{ color: var(--accent5); border-color: #3d2a0a; }
+
+  /* SECTIONS */
+  section { margin-bottom: 3.5rem; }
+  h2 {
+    font-size: 1.25rem; font-weight: 700; color: var(--text);
+    margin-bottom: 1.2rem;
+    display: flex; align-items: center; gap: .6rem;
+  }
+  h2 .num {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text-muted); border-radius: 6px;
+    padding: 0 8px; font-size: 12px; font-weight: 600; font-family: monospace;
+  }
+  h3 { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: .75rem; }
+
+  /* CARDS */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.25rem;
+  }
+  .card + .card { margin-top: 1rem; }
+  .card h3 { color: var(--accent); margin-bottom: .5rem; font-size: 14px; }
+
+  /* GRID */
+  .grid { display: grid; gap: 1rem; }
+  .grid-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .grid-3 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+
+  /* TABLE */
+  .tbl-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); }
+  th {
+    background: var(--surface2); color: var(--text-muted); font-size: 12px;
+    font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+    padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border);
+  }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+  .mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; }
+  .pill {
+    display: inline-block; border-radius: 20px; padding: 2px 10px;
+    font-size: 11px; font-weight: 600;
+  }
+  .pill.blue   { background: #1f3050; color: var(--accent); }
+  .pill.green  { background: #1a3324; color: var(--accent2); }
+  .pill.red    { background: #3d1f1f; color: var(--accent3); }
+  .pill.purple { background: #2d1f4d; color: var(--accent4); }
+  .pill.orange { background: #3d2710; color: var(--accent5); }
+  .pill.gray   { background: var(--surface2); color: var(--text-muted); }
+
+  /* CODE */
+  pre {
+    background: #010409; border: 1px solid var(--border); border-radius: 8px;
+    padding: 1rem; overflow-x: auto; font-size: 12.5px;
+    font-family: 'SF Mono', 'Fira Code', monospace; line-height: 1.7;
+    color: #c9d1d9;
+  }
+  .kw  { color: #ff7b72; }
+  .st  { color: #a5d6ff; }
+  .cm  { color: #8b949e; font-style: italic; }
+  .fn  { color: #d2a8ff; }
+  .nu  { color: #f2cc60; }
+  .ty  { color: #ffa657; }
+
+  /* C4 DIAGRAM */
+  .diagram-wrap {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.5rem; overflow-x: auto;
+  }
+  svg text { font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+
+  /* ADR */
+  .adr {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden; margin-bottom: 1rem;
+  }
+  .adr-header {
+    background: var(--surface2); padding: .75rem 1.25rem;
+    display: flex; align-items: center; gap: .75rem; border-bottom: 1px solid var(--border);
+  }
+  .adr-num { font-family: monospace; font-size: 12px; color: var(--text-muted); }
+  .adr-title { font-weight: 600; font-size: 14px; flex: 1; }
+  .adr-body { padding: 1.25rem; }
+  .adr-body p { color: var(--text-muted); font-size: 13px; margin-bottom: .75rem; }
+  .adr-body .label { color: var(--text-muted); font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .06em; margin-bottom: .3rem; }
+  .adr-body .value { color: var(--text); font-size: 13px; margin-bottom: 1rem; }
+
+  /* FLOW */
+  .flow {
+    display: flex; align-items: center; gap: 0; flex-wrap: wrap;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.25rem; overflow-x: auto;
+  }
+  .flow-step {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: .6rem 1rem;
+    font-size: 12.5px; white-space: nowrap; text-align: center;
+  }
+  .flow-step .step-label { color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing:.05em; margin-bottom: 2px; }
+  .flow-step .step-name { font-weight: 600; }
+  .flow-step .step-tech { color: var(--text-muted); font-size: 11px; margin-top: 2px; }
+  .flow-arrow {
+    color: var(--text-muted); padding: 0 .4rem; font-size: 18px; flex-shrink: 0;
+  }
+
+  /* METRIC CARDS */
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: .75rem; }
+  .metric {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1rem;
+  }
+  .metric .label { color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing:.05em; margin-bottom: .3rem; }
+  .metric .val { font-size: 1.5rem; font-weight: 700; font-family: monospace; }
+  .metric .sub  { color: var(--text-muted); font-size: 11px; margin-top: 2px; }
+  .metric.blue .val  { color: var(--accent); }
+  .metric.green .val { color: var(--accent2); }
+  .metric.orange .val{ color: var(--accent5); }
+  .metric.purple .val{ color: var(--accent4); }
+
+  /* DIVIDER */
+  .divider { height: 1px; background: var(--border); margin: 2.5rem 0; }
+
+  /* CALLOUT */
+  .callout {
+    border-left: 3px solid; border-radius: 0 8px 8px 0;
+    padding: .75rem 1rem; font-size: 13px; margin: 1rem 0;
+  }
+  .callout.info  { border-color: var(--accent);  background: #1f3050; color: #a8c8f8; }
+  .callout.warn  { border-color: var(--accent5); background: #3d2710; color: #ffd080; }
+  .callout.ok    { border-color: var(--accent2); background: #1a3324; color: #90e090; }
+
+  /* FOOTER */
+  footer {
+    text-align: center; color: var(--text-muted); font-size: 12px;
+    border-top: 1px solid var(--border); padding-top: 2rem; margin-top: 4rem;
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">⬡ DAS HLD</span>
+  <a href="#overview">Overview</a>
+  <a href="#requirements">Requirements</a>
+  <a href="#c4">Architecture</a>
+  <a href="#components">Components</a>
+  <a href="#consistency">Consistency</a>
+  <a href="#tracing">Tracing</a>
+  <a href="#latency">Tail Latency</a>
+  <a href="#adrs">ADRs</a>
+</nav>
+
+<div class="page">
+
+<!-- HERO -->
+<div class="hero">
+  <h1>Distributed Data Aggregation System</h1>
+  <p class="sub">High-Level Design · Mid-Scale · Strong Consistency</p>
+  <div class="badges">
+    <span class="badge blue">10K–100K events/sec</span>
+    <span class="badge green">Strong Consistency</span>
+    <span class="badge purple">MapReduce / Dremel</span>
+    <span class="badge orange">Dapper Tracing</span>
+    <span class="badge red">Tail-Latency Controls</span>
+  </div>
+</div>
+
+<!-- METRICS -->
+<div class="metrics" style="margin-bottom:2.5rem">
+  <div class="metric blue">
+    <div class="label">Peak Throughput</div>
+    <div class="val">100K</div>
+    <div class="sub">events / second</div>
+  </div>
+  <div class="metric green">
+    <div class="label">Write Latency p99</div>
+    <div class="val">&lt;50ms</div>
+    <div class="sub">end-to-end aggregate</div>
+  </div>
+  <div class="metric orange">
+    <div class="label">Read Latency p99</div>
+    <div class="val">&lt;20ms</div>
+    <div class="sub">hot-path query</div>
+  </div>
+  <div class="metric purple">
+    <div class="label">Availability</div>
+    <div class="val">99.99%</div>
+    <div class="sub">4-nines SLA</div>
+  </div>
+</div>
+
+<!-- OVERVIEW -->
+<section id="overview">
+  <h2><span class="num">§1</span> System Overview</h2>
+  <div class="grid grid-2">
+    <div class="card">
+      <h3>Problem Statement</h3>
+      <p style="color:var(--text-muted);font-size:13px">Ingest high-velocity event streams from heterogeneous producers, apply stateful aggregations (counts, sums, percentiles, distinct-counts) across configurable time windows, and serve strongly-consistent query results under mid-scale load.</p>
+    </div>
+    <div class="card">
+      <h3>Key Challenges</h3>
+      <ul style="color:var(--text-muted);font-size:13px;padding-left:1.2rem">
+        <li>Strong consistency across distributed aggregators</li>
+        <li>Bounded memory for stateful windowed reductions</li>
+        <li>Tail-latency spikes from stragglers</li>
+        <li>Exactly-once semantics for idempotent aggregates</li>
+        <li>Distributed tracing across async pipeline stages</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- REQUIREMENTS -->
+<section id="requirements">
+  <h2><span class="num">§2</span> Requirements</h2>
+  <div class="grid grid-2">
+    <div>
+      <h3 style="margin-bottom:.75rem">Functional</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Requirement</th><th>Detail</th></tr></thead>
+          <tbody>
+            <tr><td>Event Ingestion</td><td>Structured JSON events, up to 1 KB each</td></tr>
+            <tr><td>Aggregation Types</td><td>COUNT, SUM, MIN/MAX, P50/P90/P99, HLL distinct</td></tr>
+            <tr><td>Window Types</td><td>Tumbling (1m, 5m, 1h), Session (30m idle gap)</td></tr>
+            <tr><td>Query Interface</td><td>SQL-like over nested/repeated fields (Dremel)</td></tr>
+            <tr><td>Retention</td><td>Hot: 24h · Warm: 30d · Cold: indefinite (columnar)</td></tr>
+            <tr><td>Backfill</td><td>Replay from cold storage, idempotent re-aggregation</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <h3 style="margin-bottom:.75rem">Non-Functional</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Property</th><th>Target</th></tr></thead>
+          <tbody>
+            <tr><td>Write throughput</td><td>100K events/sec sustained</td></tr>
+            <tr><td>Write latency p99</td><td>&lt;50 ms (ingestion ACK)</td></tr>
+            <tr><td>Read latency p99</td><td>&lt;20 ms hot, &lt;500 ms warm</td></tr>
+            <tr><td>Consistency</td><td><span class="pill blue">Strong</span> — linearizable reads</td></tr>
+            <tr><td>Durability</td><td>RPO = 0 (synchronous replication)</td></tr>
+            <tr><td>Availability</td><td>99.99% (multi-AZ, no single SPOF)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- C4 DIAGRAM -->
+<section id="c4">
+  <h2><span class="num">§3</span> Architecture — C4 Container View</h2>
+
+  <!-- Data Flow -->
+  <h3 style="margin-bottom:.75rem">Data Flow</h3>
+  <div class="flow" style="margin-bottom:1.5rem">
+    <div class="flow-step">
+      <div class="step-label">Producers</div>
+      <div class="step-name">Event Sources</div>
+      <div class="step-tech">HTTP / gRPC</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="step-label">Ingest</div>
+      <div class="step-name">Gateway &amp; WAL</div>
+      <div class="step-tech">Kafka partitions</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="step-label">Map</div>
+      <div class="step-name">Parse + Key</div>
+      <div class="step-tech">Worker pool</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="step-label">Shuffle</div>
+      <div class="step-name">Hash Partition</div>
+      <div class="step-tech">Consistent hash</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="step-label">Reduce</div>
+      <div class="step-name">Aggregators</div>
+      <div class="step-tech">Raft cluster</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="step-label">Store</div>
+      <div class="step-name">Tiered Storage</div>
+      <div class="step-tech">Redis / RocksDB / Parquet</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="step-label">Serve</div>
+      <div class="step-name">Query Engine</div>
+      <div class="step-tech">Dremel-style SQL</div>
+    </div>
+  </div>
+
+  <!-- SVG Architecture Diagram -->
+  <div class="diagram-wrap">
+    <svg viewBox="0 0 1000 520" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:1000px;display:block;margin:0 auto">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#58a6ff" opacity=".7"/>
+        </marker>
+        <marker id="arr2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#8b949e" opacity=".7"/>
+        </marker>
+      </defs>
+
+      <!-- Background regions -->
+      <rect x="10" y="10" width="980" height="500" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+
+      <!-- Ingest Zone -->
+      <rect x="30" y="40" width="160" height="200" rx="8" fill="#0d1117" stroke="#1f4068" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="110" y="58" text-anchor="middle" font-size="10" fill="#58a6ff" font-weight="600">INGEST ZONE</text>
+
+      <!-- Gateway -->
+      <rect x="45" y="68" width="130" height="50" rx="6" fill="#21262d" stroke="#30363d"/>
+      <text x="110" y="88" text-anchor="middle" font-size="11" fill="#e6edf3" font-weight="600">API Gateway</text>
+      <text x="110" y="104" text-anchor="middle" font-size="10" fill="#8b949e">gRPC / HTTP/2</text>
+
+      <!-- Kafka -->
+      <rect x="45" y="135" width="130" height="50" rx="6" fill="#21262d" stroke="#30363d"/>
+      <text x="110" y="155" text-anchor="middle" font-size="11" fill="#e6edf3" font-weight="600">Kafka WAL</text>
+      <text x="110" y="171" text-anchor="middle" font-size="10" fill="#8b949e">32 partitions</text>
+
+      <!-- Arrow GW→Kafka -->
+      <line x1="110" y1="118" x2="110" y2="135" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arr)" opacity=".7"/>
+
+      <!-- Compute Zone -->
+      <rect x="215" y="40" width="340" height="290" rx="8" fill="#0d1117" stroke="#1a3a1a" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="385" y="58" text-anchor="middle" font-size="10" fill="#3fb950" font-weight="600">COMPUTE ZONE — MapReduce / Dremel</text>
+
+      <!-- Mapper Pool -->
+      <rect x="230" y="68" width="130" height="50" rx="6" fill="#21262d" stroke="#30363d"/>
+      <text x="295" y="88" text-anchor="middle" font-size="11" fill="#e6edf3" font-weight="600">Mapper Pool</text>
+      <text x="295" y="104" text-anchor="middle" font-size="10" fill="#8b949e">parse · enrich · key</text>
+
+      <!-- Shuffle -->
+      <rect x="230" y="145" width="130" height="50" rx="6" fill="#21262d" stroke="#30363d"/>
+      <text x="295" y="165" text-anchor="middle" font-size="11" fill="#e6edf3" font-weight="600">Shuffle Router</text>
+      <text x="295" y="181" text-anchor="middle" font-size="10" fill="#8b949e">consistent hash ring</text>
+
+      <!-- Reducer Cluster -->
+      <rect x="390" y="68" width="150" height="240" rx="6" fill="#1a2035" stroke="#1f4068"/>
+      <text x="465" y="88" text-anchor="middle" font-size="11" fill="#58a6ff" font-weight="600">Aggregator Cluster</text>
+      <text x="465" y="104" text-anchor="middle" font-size="10" fill="#8b949e">Raft consensus</text>
+      <!-- Reducer nodes -->
+      <rect x="405" y="115" width="120" height="32" rx="5" fill="#21262d" stroke="#30363d"/>
+      <text x="465" y="135" text-anchor="middle" font-size="10" fill="#e6edf3">Reducer-0 (Leader)</text>
+      <rect x="405" y="157" width="120" height="32" rx="5" fill="#21262d" stroke="#30363d"/>
+      <text x="465" y="177" text-anchor="middle" font-size="10" fill="#e6edf3">Reducer-1 (Follower)</text>
+      <rect x="405" y="199" width="120" height="32" rx="5" fill="#21262d" stroke="#30363d"/>
+      <text x="465" y="219" text-anchor="middle" font-size="10" fill="#e6edf3">Reducer-2 (Follower)</text>
+      <text x="465" y="260" text-anchor="middle" font-size="9" fill="#8b949e">Window State · WAL</text>
+      <text x="465" y="276" text-anchor="middle" font-size="9" fill="#8b949e">Flush on commit</text>
+      <text x="465" y="295" text-anchor="middle" font-size="9" fill="#3fb950">✓ linearizable writes</text>
+
+      <!-- Arrows compute -->
+      <line x1="175" y1="155" x2="230" y2="88" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arr)" opacity=".7"/>
+      <line x1="295" y1="118" x2="295" y2="145" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arr)" opacity=".7"/>
+      <line x1="360" y1="170" x2="390" y2="150" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arr)" opacity=".7"/>
+
+      <!-- Storage Zone -->
+      <rect x="580" y="40" width="230" height="290" rx="8" fill="#0d1117" stroke="#2d1f4d" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="695" y="58" text-anchor="middle" font-size="10" fill="#d2a8ff" font-weight="600">TIERED STORAGE</text>
+
+      <!-- Hot -->
+      <rect x="595" y="68" width="200" height="60" rx="6" fill="#21262d" stroke="#30363d"/>
+      <text x="695" y="88" text-anchor="middle" font-size="11" fill="#ffa657" font-weight="600">🔥 Hot Tier</text>
+      <text x="695" y="105" text-anchor="middle" font-size="10" fill="#8b949e">Redis Cluster · in-memory</text>
+      <text x="695" y="120" text-anchor="middle" font-size="10" fill="#8b949e">TTL 24h · &lt;1ms read</text>
+
+      <!-- Warm -->
+      <rect x="595" y="145" width="200" height="60" rx="6" fill="#21262d" stroke="#30363d"/>
+      <text x="695" y="165" text-anchor="middle" font-size="11" fill="#58a6ff" font-weight="600">💧 Warm Tier</text>
+      <text x="695" y="182" text-anchor="middle" font-size="10" fill="#8b949e">RocksDB · LSM-tree</text>
+      <text x="695" y="197" text-anchor="middle" font-size="10" fill="#8b949e">TTL 30d · &lt;10ms read</text>
+
+      <!-- Cold -->
+      <rect x="595" y="222" width="200" height="60" rx="6" fill="#21262d" stroke="#30363d"/>
+      <text x="695" y="242" text-anchor="middle" font-size="11" fill="#8b949e" font-weight="600">🧊 Cold Tier</text>
+      <text x="695" y="259" text-anchor="middle" font-size="10" fill="#8b949e">Parquet / Dremel-columnar</text>
+      <text x="695" y="275" text-anchor="middle" font-size="10" fill="#8b949e">S3 · indefinite retention</text>
+
+      <!-- Arrow reducers → storage -->
+      <line x1="540" y1="150" x2="595" y2="95" stroke="#d2a8ff" stroke-width="1.5" marker-end="url(#arr)" opacity=".7"/>
+      <line x1="540" y1="180" x2="595" y2="172" stroke="#d2a8ff" stroke-width="1.5" marker-end="url(#arr)" opacity=".7"/>
+      <line x1="540" y1="210" x2="595" y2="248" stroke="#8b949e" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr2)" opacity=".6"/>
+
+      <!-- Query Engine -->
+      <rect x="830" y="68" width="145" height="100" rx="6" fill="#21262d" stroke="#30363d"/>
+      <text x="902" y="90" text-anchor="middle" font-size="11" fill="#e6edf3" font-weight="600">Query Engine</text>
+      <text x="902" y="107" text-anchor="middle" font-size="10" fill="#8b949e">Dremel-style SQL</text>
+      <text x="902" y="122" text-anchor="middle" font-size="10" fill="#8b949e">nested + repeated</text>
+      <text x="902" y="139" text-anchor="middle" font-size="10" fill="#8b949e">fan-out to tiers</text>
+      <text x="902" y="156" text-anchor="middle" font-size="10" fill="#3fb950">linearizable reads</text>
+
+      <!-- Arrow storage → query -->
+      <line x1="795" y1="120" x2="830" y2="115" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arr)" opacity=".7"/>
+
+      <!-- Observability -->
+      <rect x="30" y="360" width="950" height="130" rx="8" fill="#0d1117" stroke="#3d2710" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="505" y="378" text-anchor="middle" font-size="10" fill="#ffa657" font-weight="600">OBSERVABILITY PLANE — Dapper-style Tracing</text>
+
+      <!-- Trace Collector -->
+      <rect x="45" y="388" width="150" height="50" rx="6" fill="#21262d" stroke="#30363d"/>
+      <text x="120" y="408" text-anchor="middle" font-size="11" fill="#e6edf3" font-weight="600">Trace Collector</text>
+      <text x="120" y="423" text-anchor="middle" font-size="10" fill="#8b949e">OTLP / Jaeger</text>
+
+      <!-- Metrics Store -->
+      <rect x="215" y="388" width="150" height="50" rx="6" fill="#21262d" stroke="#30363d"/>
+      <text x="290" y="408" text-anchor="middle" font-size="11" fill="#e6edf3" font-weight="600">Metrics Store</text>
+      <text x="290" y="423" text-anchor="middle" font-size="10" fill="#8b949e">Prometheus / VictoriaMetrics</text>
+
+      <!-- Latency Dashboard -->
+      <rect x="385" y="388" width="150" height="50" rx="6" fill="#21262d" stroke="#30363d"/>
+      <text x="460" y="408" text-anchor="middle" font-size="11" fill="#e6edf3" font-weight="600">Latency Dashboard</text>
+      <text x="460" y="423" text-anchor="middle" font-size="10" fill="#8b949e">p50/p99/p999 per stage</text>
+
+      <!-- Alert Manager -->
+      <rect x="555" y="388" width="150" height="50" rx="6" fill="#21262d" stroke="#30363d"/>
+      <text x="630" y="408" text-anchor="middle" font-size="11" fill="#e6edf3" font-weight="600">Alert Manager</text>
+      <text x="630" y="423" text-anchor="middle" font-size="10" fill="#8b949e">SLO burn-rate alerts</text>
+
+      <!-- Anomaly Detector -->
+      <rect x="725" y="388" width="150" height="50" rx="6" fill="#21262d" stroke="#30363d"/>
+      <text x="800" y="408" text-anchor="middle" font-size="11" fill="#e6edf3" font-weight="600">Anomaly Detector</text>
+      <text x="800" y="423" text-anchor="middle" font-size="10" fill="#8b949e">straggler detection</text>
+
+      <!-- Dotted lines from pipeline to obs -->
+      <line x1="110" y1="215" x2="110" y2="388" stroke="#ffa657" stroke-width="1" stroke-dasharray="3,3" opacity=".4"/>
+      <line x1="295" y1="315" x2="290" y2="388" stroke="#ffa657" stroke-width="1" stroke-dasharray="3,3" opacity=".4"/>
+      <line x1="465" y1="315" x2="460" y2="388" stroke="#ffa657" stroke-width="1" stroke-dasharray="3,3" opacity=".4"/>
+      <line x1="695" y1="305" x2="630" y2="388" stroke="#ffa657" stroke-width="1" stroke-dasharray="3,3" opacity=".4"/>
+      <line x1="902" y1="168" x2="800" y2="388" stroke="#ffa657" stroke-width="1" stroke-dasharray="3,3" opacity=".4"/>
+
+      <!-- Legend -->
+      <rect x="830" y="200" width="145" height="125" rx="6" fill="#21262d" stroke="#30363d"/>
+      <text x="903" y="218" text-anchor="middle" font-size="10" fill="#8b949e" font-weight="600">LEGEND</text>
+      <line x1="845" y1="232" x2="870" y2="232" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arr)"/>
+      <text x="878" y="235" font-size="10" fill="#8b949e">sync write</text>
+      <line x1="845" y1="250" x2="870" y2="250" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arr)"/>
+      <text x="878" y="253" font-size="10" fill="#8b949e">compute flow</text>
+      <line x1="845" y1="268" x2="870" y2="268" stroke="#d2a8ff" stroke-width="1.5" marker-end="url(#arr)"/>
+      <text x="878" y="271" font-size="10" fill="#8b949e">persist</text>
+      <line x1="845" y1="286" x2="870" y2="286" stroke="#8b949e" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr2)"/>
+      <text x="878" y="289" font-size="10" fill="#8b949e">async/cold</text>
+      <line x1="845" y1="304" x2="870" y2="304" stroke="#ffa657" stroke-width="1" stroke-dasharray="3,3"/>
+      <text x="878" y="307" font-size="10" fill="#8b949e">telemetry</text>
+    </svg>
+  </div>
+</section>
+
+<!-- COMPONENTS -->
+<section id="components">
+  <h2><span class="num">§4</span> Component Reference</h2>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>Role</th>
+          <th>Technology</th>
+          <th>Scaling Unit</th>
+          <th>Failure Mode</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>API Gateway</strong></td>
+          <td>Validate, authenticate, route ingestion requests</td>
+          <td class="mono">Envoy Proxy + gRPC</td>
+          <td>Stateless · horizontal</td>
+          <td>Health-check failover · no state lost</td>
+        </tr>
+        <tr>
+          <td><strong>Kafka WAL</strong></td>
+          <td>Durable ordered log; decouple producers from compute</td>
+          <td class="mono">Apache Kafka 3.x (KRaft)</td>
+          <td>Partition count</td>
+          <td>Replication factor 3 · ISR quorum</td>
+        </tr>
+        <tr>
+          <td><strong>Mapper Pool</strong></td>
+          <td>Deserialize, enrich, extract aggregation key + window</td>
+          <td class="mono">Go worker goroutines</td>
+          <td>Consumer group members</td>
+          <td>Restart from last committed offset</td>
+        </tr>
+        <tr>
+          <td><strong>Shuffle Router</strong></td>
+          <td>Route events to correct aggregator by key hash</td>
+          <td class="mono">Consistent hash ring (rendezvous)</td>
+          <td>Stateless · horizontal</td>
+          <td>Rebalance on node join/leave</td>
+        </tr>
+        <tr>
+          <td><strong>Aggregator Cluster</strong></td>
+          <td>Stateful window reduce; commit via Raft</td>
+          <td class="mono">etcd-backed Raft / TiKV</td>
+          <td>Shard count · replicas=3</td>
+          <td>Leader election · follower catch-up</td>
+        </tr>
+        <tr>
+          <td><strong>Hot Tier (Redis)</strong></td>
+          <td>Sub-ms reads on current &amp; recent window aggregates</td>
+          <td class="mono">Redis Cluster 7.x</td>
+          <td>Slot-based sharding</td>
+          <td>Sentinel failover · replica promotion</td>
+        </tr>
+        <tr>
+          <td><strong>Warm Tier (RocksDB)</strong></td>
+          <td>Compressed on-disk aggregates for last 30 days</td>
+          <td class="mono">RocksDB / Pebble (LSM)</td>
+          <td>Per-shard volume</td>
+          <td>WAL replay on restart</td>
+        </tr>
+        <tr>
+          <td><strong>Cold Tier (Parquet)</strong></td>
+          <td>Columnar archival; Dremel-style nested query</td>
+          <td class="mono">Parquet on S3 + Athena</td>
+          <td>Object storage · unlimited</td>
+          <td>Read-only; rebuilt from WAL if corrupt</td>
+        </tr>
+        <tr>
+          <td><strong>Query Engine</strong></td>
+          <td>Fan-out query across tiers; merge results</td>
+          <td class="mono">Custom + DuckDB</td>
+          <td>Stateless · horizontal</td>
+          <td>Retry on tier timeout; degrade to warm</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- MAPREDUCE / DREMEL -->
+<section id="mapreduce">
+  <h2><span class="num">§5</span> MapReduce &amp; Dremel Aggregation Patterns</h2>
+
+  <div class="grid grid-2" style="margin-bottom:1.25rem">
+    <div class="card">
+      <h3>Map Phase — Key Extraction</h3>
+      <pre><span class="cm">// Each mapper reads from a Kafka partition</span>
+<span class="kw">func</span> <span class="fn">mapEvent</span>(raw <span class="ty">[]byte</span>) (<span class="ty">MappedEvent</span>, <span class="ty">error</span>) {
+  evt := <span class="fn">parse</span>(raw)
+  key := <span class="ty">AggKey</span>{
+    MetricName: evt.Name,
+    TenantID:   evt.TenantID,
+    Window:     <span class="fn">truncate</span>(evt.Ts, <span class="nu">5</span>*time.Minute),
+  }
+  <span class="kw">return</span> <span class="ty">MappedEvent</span>{Key: key, Value: evt.Value}, <span class="st">nil</span>
+}</pre>
+    </div>
+    <div class="card">
+      <h3>Reduce Phase — Combine &amp; Commit</h3>
+      <pre><span class="cm">// Aggregator holds window state in memory,</span>
+<span class="cm">// flushes via Raft on window close</span>
+<span class="kw">type</span> <span class="ty">WindowAccumulator</span> <span class="kw">struct</span> {
+  Count  <span class="ty">int64</span>
+  Sum    <span class="ty">float64</span>
+  HLL    <span class="ty">*hyperloglog.Sketch</span> <span class="cm">// distinct count</span>
+  DDSketch <span class="ty">*ddsketch.DDSketch</span> <span class="cm">// percentiles</span>
+}
+
+<span class="kw">func</span> (a *<span class="ty">WindowAccumulator</span>) <span class="fn">Merge</span>(v <span class="ty">float64</span>) {
+  a.Count++; a.Sum += v
+  a.HLL.<span class="fn">Insert</span>(v); a.DDSketch.<span class="fn">Add</span>(v)
+}</pre>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Dremel-style Columnar Query (Cold Tier)</h3>
+    <div class="callout info">Google Dremel encodes nested + repeated fields using definition/repetition levels, enabling column projection without materializing full records. We apply the same model for cold-tier Parquet files.</div>
+    <pre><span class="cm">-- Dremel-style nested query over Parquet</span>
+<span class="kw">SELECT</span>
+  window_start,
+  tenant_id,
+  metric_name,
+  <span class="fn">SUM</span>(value.sum)        <span class="kw">AS</span> total_sum,
+  <span class="fn">SUM</span>(value.count)      <span class="kw">AS</span> total_count,
+  <span class="fn">APPROX_PERCENTILE</span>(value.sketch, <span class="nu">0.99</span>) <span class="kw">AS</span> p99
+<span class="kw">FROM</span> agg_cold
+<span class="kw">WHERE</span> window_start <span class="kw">BETWEEN</span> <span class="st">'2024-01-01'</span> <span class="kw">AND</span> <span class="st">'2024-01-31'</span>
+<span class="kw">GROUP BY</span> <span class="nu">1</span>, <span class="nu">2</span>, <span class="nu">3</span>
+<span class="kw">ORDER BY</span> total_sum <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="nu">100</span>;
+
+<span class="cm">-- Column pruning: only value.sum, value.count, value.sketch</span>
+<span class="cm">-- are read from disk — not the full row group</span></pre>
+  </div>
+</section>
+
+<!-- CONSISTENCY -->
+<section id="consistency">
+  <h2><span class="num">§6</span> Distributed Consistency — Raft Protocol</h2>
+
+  <div class="callout ok">Target: <strong>Linearizability</strong> (strongest single-object consistency). Every read reflects the most recent completed write, regardless of which replica is queried.</div>
+
+  <div class="grid grid-2" style="margin-top:1.25rem">
+    <div class="card">
+      <h3>Write Path (Raft)</h3>
+      <ol style="color:var(--text-muted);font-size:13px;padding-left:1.2rem;line-height:2">
+        <li>Reducer receives aggregation update</li>
+        <li>Leader appends to Raft log</li>
+        <li>Leader replicates to ≥2 followers (quorum=3)</li>
+        <li>Once majority ACK, entry is <em>committed</em></li>
+        <li>Leader applies to in-memory state + Redis hot tier</li>
+        <li>ACK returned to producer ← <strong>linearizable point</strong></li>
+      </ol>
+    </div>
+    <div class="card">
+      <h3>Read Path (Linearizable)</h3>
+      <ol style="color:var(--text-muted);font-size:13px;padding-left:1.2rem;line-height:2">
+        <li>Query engine sends read to Raft leader</li>
+        <li>Leader issues ReadIndex to confirm it is still leader</li>
+        <li>If ≥ quorum confirms leadership → serve from state machine</li>
+        <li>Otherwise: redirect to new leader</li>
+        <li>Hot-tier Redis reads are served only after leader confirmation</li>
+      </ol>
+      <div class="callout warn" style="margin-top:.75rem;font-size:12px">Stale reads from follower replicas are explicitly disabled. All reads route to current Raft leader.</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:1rem">
+    <h3>Exactly-Once Aggregation</h3>
+    <pre><span class="cm">// Each event carries a globally-unique idempotency key</span>
+<span class="cm">// Reducer deduplicates within window using a Bloom filter</span>
+<span class="kw">type</span> <span class="ty">IdempotencyKey</span> = (ProducerID, SequenceNum)
+
+<span class="kw">func</span> (r *<span class="ty">Reducer</span>) <span class="fn">Apply</span>(evt <span class="ty">Event</span>) <span class="ty">error</span> {
+  <span class="kw">if</span> r.seen.<span class="fn">Contains</span>(evt.IdemKey) {
+    <span class="kw">return</span> <span class="st">nil</span> <span class="cm">// duplicate — skip</span>
+  }
+  r.acc.<span class="fn">Merge</span>(evt.Value)
+  r.seen.<span class="fn">Add</span>(evt.IdemKey)
+  <span class="kw">return</span> r.raft.<span class="fn">Propose</span>(r.acc) <span class="cm">// commit via Raft</span>
+}</pre>
+  </div>
+
+  <div class="tbl-wrap" style="margin-top:1rem">
+    <table>
+      <thead><tr><th>Scenario</th><th>Behavior</th><th>Guarantee</th></tr></thead>
+      <tbody>
+        <tr><td>Leader crash mid-write</td><td>New leader elected; uncommitted log entries discarded</td><td><span class="pill green">No data loss</span></td></tr>
+        <tr><td>Network partition</td><td>Minority partition rejects writes (no quorum)</td><td><span class="pill blue">Partition-safe</span></td></tr>
+        <tr><td>Duplicate event delivery</td><td>Idempotency key + Bloom filter deduplicate</td><td><span class="pill green">Exactly-once</span></td></tr>
+        <tr><td>Follower behind on replicas</td><td>Reads redirect to leader; follower catches up async</td><td><span class="pill blue">Linearizable reads</span></td></tr>
+        <tr><td>Hot-tier Redis diverges</td><td>Cache invalidated on Raft commit; read falls through to state machine</td><td><span class="pill green">Cache coherence</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- DAPPER TRACING -->
+<section id="tracing">
+  <h2><span class="num">§7</span> Distributed Tracing — Dapper Model</h2>
+
+  <div class="callout info">Based on Google's Dapper paper: every request is tagged with a <strong>TraceID</strong> (globally unique). Each pipeline stage creates a <strong>Span</strong> with a SpanID and ParentSpanID, recording start/end timestamps and annotations. Spans are sampled and collected asynchronously — zero overhead on the hot path when sampling rate = 0.</div>
+
+  <div class="grid grid-2" style="margin-top:1.25rem">
+    <div class="card">
+      <h3>Trace Context Propagation</h3>
+      <pre><span class="cm">// W3C Trace Context (traceparent header)</span>
+<span class="ty">traceparent</span>: <span class="nu">00</span>-<span class="st">4bf92f3577b34da6...</span>-<span class="st">00f067aa0ba902b7</span>-<span class="nu">01</span>
+              ↑  ←— TraceID (128-bit) —→  ←ParentSpan→  flags
+
+<span class="cm">// Each stage extracts + re-injects context</span>
+<span class="kw">func</span> <span class="fn">processEvent</span>(ctx <span class="ty">context.Context</span>, evt <span class="ty">Event</span>) {
+  span := tracer.<span class="fn">Start</span>(ctx, <span class="st">"aggregator.apply"</span>)
+  <span class="kw">defer</span> span.<span class="fn">End</span>()
+
+  span.<span class="fn">SetAttributes</span>(
+    attribute.<span class="fn">String</span>(<span class="st">"agg.key"</span>,    evt.Key),
+    attribute.<span class="fn">String</span>(<span class="st">"agg.window"</span>, evt.Window),
+    attribute.<span class="fn">Int64</span> (<span class="st">"agg.shard"</span>,  evt.Shard),
+  )
+  <span class="fn">applyToAccumulator</span>(ctx, evt)
+}</pre>
+    </div>
+    <div class="card">
+      <h3>Span Taxonomy</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Span Name</th><th>Parent</th><th>Key Attrs</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">ingest.receive</td><td>—</td><td>producer_id, bytes</td></tr>
+            <tr><td class="mono">kafka.produce</td><td>ingest.receive</td><td>partition, offset</td></tr>
+            <tr><td class="mono">mapper.process</td><td>kafka.produce</td><td>agg_key, latency_ms</td></tr>
+            <tr><td class="mono">shuffle.route</td><td>mapper.process</td><td>target_shard</td></tr>
+            <tr><td class="mono">aggregator.apply</td><td>shuffle.route</td><td>window, raft_term</td></tr>
+            <tr><td class="mono">raft.propose</td><td>aggregator.apply</td><td>log_idx, quorum_ms</td></tr>
+            <tr><td class="mono">store.hot_write</td><td>raft.propose</td><td>redis_latency_ms</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:1rem">
+    <h3>Adaptive Sampling Strategy</h3>
+    <pre><span class="cm">// Head-based + tail-based hybrid sampling</span>
+sampler := <span class="fn">NewCompositeSampler</span>(
+  <span class="cm">// Always sample errors and slow traces (tail-based)</span>
+  <span class="fn">IfError</span>(),
+  <span class="fn">IfLatencyExceeds</span>(<span class="nu">200</span>*time.Millisecond),
+  <span class="cm">// Head-based: 1% of remaining traffic</span>
+  <span class="fn">ProbabilisticSampler</span>(<span class="nu">0.01</span>),
+)
+<span class="cm">// At 100K events/sec → ~1K sampled traces/sec + all slow/error traces</span>
+<span class="cm">// Overhead: &lt;0.1% CPU on hot path (async span export via OTLP gRPC)</span></pre>
+  </div>
+</section>
+
+<!-- TAIL LATENCY -->
+<section id="latency">
+  <h2><span class="num">§8</span> Tail-Latency Controls</h2>
+
+  <div class="callout warn">At 100K req/s, a 1% straggler rate = 1,000 slow requests/sec. Tail-latency techniques below keep p999 within 3× of p50.</div>
+
+  <div class="grid grid-2" style="margin-top:1.25rem;margin-bottom:1rem">
+    <div class="card">
+      <h3>1. Hedged Requests</h3>
+      <p style="color:var(--text-muted);font-size:13px;margin-bottom:.75rem">If a shard doesn't respond within the 95th-percentile latency, send the same request to a backup shard and use whichever replies first. Cancel the loser.</p>
+      <pre><span class="kw">func</span> <span class="fn">hedgedQuery</span>(key <span class="ty">AggKey</span>) (<span class="ty">Result</span>, <span class="ty">error</span>) {
+  ctx, cancel := context.<span class="fn">WithTimeout</span>(ctx, <span class="nu">50</span>*ms)
+  <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+  <span class="cm">// Issue primary, hedge after p95 deadline</span>
+  hedge := time.<span class="fn">After</span>(p95Latency)
+  <span class="kw">select</span> {
+  <span class="kw">case</span> r := &lt;-<span class="fn">queryPrimary</span>(ctx, key):
+    <span class="kw">return</span> r, <span class="st">nil</span>
+  <span class="kw">case</span> &lt;-hedge:
+    <span class="kw">return</span> <span class="fn">race</span>(ctx, key, primary, backup)
+  }
+}</pre>
+    </div>
+    <div class="card">
+      <h3>2. Speculative Execution</h3>
+      <p style="color:var(--text-muted);font-size:13px;margin-bottom:.75rem">For Dremel-style fan-out queries, detect slow sub-tasks and re-launch them on idle workers. Use the first completion, discard duplicates.</p>
+      <pre><span class="kw">func</span> <span class="fn">speculativeReduce</span>(shards []<span class="ty">Shard</span>) <span class="ty">Result</span> {
+  results := <span class="kw">make</span>(<span class="kw">chan</span> <span class="ty">ShardResult</span>, <span class="kw">len</span>(shards))
+
+  <span class="kw">for</span> _, s := <span class="kw">range</span> shards {
+    <span class="kw">go</span> <span class="fn">queryWithSpeculation</span>(s, results)
+  }
+  <span class="cm">// Collect all; speculative copies deduped</span>
+  <span class="kw">return</span> <span class="fn">mergeFirst</span>(results, <span class="kw">len</span>(shards))
+}</pre>
+    </div>
+  </div>
+
+  <div class="grid grid-2" style="margin-bottom:1rem">
+    <div class="card">
+      <h3>3. Timeout Budgets (Cascading)</h3>
+      <pre><span class="cm">// Deadline propagated via context — each hop</span>
+<span class="cm">// subtracts its own timeout from remaining budget</span>
+<span class="ty">Budget</span>: <span class="nu">50</span>ms total
+  Gateway:     <span class="nu">5</span>ms  (validate + auth)
+  Mapper:      <span class="nu">5</span>ms  (parse + enrich)
+  Shuffle:     <span class="nu">2</span>ms  (routing lookup)
+  Aggregator: <span class="nu">20</span>ms  (Raft propose + apply)
+  Storage:     <span class="nu">8</span>ms  (hot-tier write)
+  Slack:       <span class="nu">10</span>ms (network jitter)
+<span class="cm">// If remaining &lt; 2ms, return DEADLINE_EXCEEDED early</span></pre>
+    </div>
+    <div class="card">
+      <h3>4. Request Coalescing (Write Batching)</h3>
+      <pre><span class="cm">// Batch small writes into micro-batches</span>
+<span class="cm">// to amortize Raft round-trip overhead</span>
+<span class="kw">func</span> (r *<span class="ty">Reducer</span>) <span class="fn">RunBatcher</span>() {
+  ticker := time.<span class="fn">NewTicker</span>(<span class="nu">5</span> * time.Millisecond)
+  <span class="kw">for</span> {
+    batch := r.<span class="fn">drainQueue</span>(<span class="nu">512</span>) <span class="cm">// max 512 events</span>
+    <span class="kw">if</span> <span class="kw">len</span>(batch) > <span class="nu">0</span> {
+      <span class="fn">applyBatch</span>(batch)
+      r.raft.<span class="fn">Propose</span>(r.acc)  <span class="cm">// single Raft entry</span>
+    }
+    &lt;-ticker.C
+  }
+}
+<span class="cm">// At 100K/s: ~500 events per 5ms batch → 200 Raft ops/sec</span></pre>
+    </div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Technique</th><th>Latency Reduction</th><th>Cost</th><th>Applied At</th></tr></thead>
+      <tbody>
+        <tr><td>Hedged requests</td><td>Eliminates p99+ stragglers</td><td>~5% extra load</td><td>Query engine reads</td></tr>
+        <tr><td>Speculative execution</td><td>Cuts fan-out tail by 40–60%</td><td>~10% extra shard load</td><td>Cold-tier fan-out</td></tr>
+        <tr><td>Deadline budgets</td><td>Prevents cascading delays</td><td>Negligible</td><td>Every RPC hop</td></tr>
+        <tr><td>Write coalescing</td><td>Reduces Raft overhead 100×</td><td>+5ms batch delay</td><td>Aggregator ingestion</td></tr>
+        <tr><td>Adaptive sampling</td><td>Reduces tracer overhead 99%</td><td>Reduced trace coverage</td><td>Observability plane</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ADRS -->
+<section id="adrs">
+  <h2><span class="num">§9</span> Architecture Decision Records</h2>
+
+  <div class="adr">
+    <div class="adr-header">
+      <span class="adr-num">ADR-001</span>
+      <span class="adr-title">Strong consistency via Raft over eventual consistency</span>
+      <span class="pill green">Accepted</span>
+    </div>
+    <div class="adr-body">
+      <div class="label">Context</div>
+      <div class="value">Aggregated metrics are used for billing, SLA reporting, and alerting — stale reads could trigger incorrect charge-backs or missed alerts.</div>
+      <div class="label">Decision</div>
+      <div class="value">Use Raft-based aggregator cluster (etcd / TiKV) with linearizable reads via ReadIndex. All reads route to the Raft leader.</div>
+      <div class="label">Consequences</div>
+      <p>Higher write latency (~15ms Raft round-trip) vs eventual consistency. Leader becomes a bottleneck — mitigated by per-key sharding (each key-range has its own Raft group). Follower reads disabled: all reads go to leader.</p>
+    </div>
+  </div>
+
+  <div class="adr">
+    <div class="adr-header">
+      <span class="adr-num">ADR-002</span>
+      <span class="adr-title">Micro-batch aggregation (5ms windows) over pure streaming</span>
+      <span class="pill green">Accepted</span>
+    </div>
+    <div class="adr-body">
+      <div class="label">Context</div>
+      <div class="value">Pure streaming (per-event Raft propose) would require 100K Raft writes/sec — unsustainable. Pure batch (1m flush) adds unacceptable latency.</div>
+      <div class="label">Decision</div>
+      <div class="value">Buffer events in memory for 5ms, apply all to accumulator, then issue a single Raft proposal. Reduces Raft ops to ~200/sec at 100K events/sec.</div>
+      <div class="label">Consequences</div>
+      <p>+5ms write latency (within budget). Memory buffer must survive crashes — covered by Kafka offset not advancing until Raft commit. Accumulator state is in-memory only; crash before commit = replay from last Kafka offset.</p>
+    </div>
+  </div>
+
+  <div class="adr">
+    <div class="adr-header">
+      <span class="adr-num">ADR-003</span>
+      <span class="adr-title">Dremel-style columnar Parquet for cold storage</span>
+      <span class="pill green">Accepted</span>
+    </div>
+    <div class="adr-body">
+      <div class="label">Context</div>
+      <div class="value">Historical aggregation queries span months of data across billions of rows. Row-based formats are too slow; wide columnar formats can't represent nested event schemas.</div>
+      <div class="label">Decision</div>
+      <div class="value">Encode nested aggregation records as Parquet with definition/repetition levels (Dremel encoding). Query via DuckDB / Athena with column-pruned scans.</div>
+      <div class="label">Consequences</div>
+      <p>10–100× faster analytical scans vs row-based. Write path must serialize accumulators to Dremel-encoded Parquet on window close. Schema evolution handled via Avro compatibility rules before Parquet write.</p>
+    </div>
+  </div>
+
+  <div class="adr">
+    <div class="adr-header">
+      <span class="adr-num">ADR-004</span>
+      <span class="adr-title">Hedged requests for tail-latency control at query layer</span>
+      <span class="pill green">Accepted</span>
+    </div>
+    <div class="adr-body">
+      <div class="label">Context</div>
+      <div class="value">GC pauses, disk I/O spikes, and kernel scheduling cause ~1% of queries to exceed 3× median latency. Retries add full latency penalty.</div>
+      <div class="label">Decision</div>
+      <div class="value">Issue hedged duplicate query to a second shard after p95 deadline. First response wins; loser is cancelled. Adds ~5% extra query load.</div>
+      <div class="label">Consequences</div>
+      <p>p999 read latency drops from ~200ms to &lt;60ms in load tests. Must ensure hedged queries are idempotent (reads are). Hedging disabled for writes — Raft handles write safety.</p>
+    </div>
+  </div>
+
+  <div class="adr">
+    <div class="adr-header">
+      <span class="adr-num">ADR-005</span>
+      <span class="adr-title">Adaptive hybrid sampling for Dapper-style tracing</span>
+      <span class="pill green">Accepted</span>
+    </div>
+    <div class="adr-body">
+      <div class="label">Context</div>
+      <div class="value">100% trace sampling at 100K events/sec generates ~500 MB/s of span data — prohibitively expensive to store and query.</div>
+      <div class="label">Decision</div>
+      <div class="value">Head-based 1% probabilistic sampling for normal traffic. Tail-based always-sample for errors and latency &gt; p95. Span export is async via OTLP gRPC — zero blocking on the hot path.</div>
+      <div class="label">Consequences</div>
+      <p>~1K sampled traces/sec at steady state + all slow/error traces. Storage ~5 MB/s (manageable). Root-cause investigation possible for any error or slow trace. Normal-traffic trace coverage is statistical (1%).</p>
+    </div>
+  </div>
+</section>
+
+<!-- FAILURE MODES -->
+<section id="failures">
+  <h2><span class="num">§10</span> Failure Modes &amp; Mitigations</h2>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Failure</th><th>Impact</th><th>Mitigation</th><th>Recovery Time</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Aggregator leader crash</td>
+          <td>Write unavailability during election</td>
+          <td>Raft election timeout 150–300ms; followers auto-promote</td>
+          <td><span class="pill orange">&lt;500ms</span></td>
+        </tr>
+        <tr>
+          <td>Kafka broker failure</td>
+          <td>Partition reassignment; brief stall</td>
+          <td>RF=3; ISR quorum; producer retries with backoff</td>
+          <td><span class="pill orange">&lt;30s</span></td>
+        </tr>
+        <tr>
+          <td>Redis cluster node loss</td>
+          <td>Hot-tier cache miss; fallback to state machine</td>
+          <td>Redis Sentinel; automatic slot migration</td>
+          <td><span class="pill orange">&lt;10s</span></td>
+        </tr>
+        <tr>
+          <td>Network partition (AZ split)</td>
+          <td>Minority AZ rejects writes; majority continues</td>
+          <td>Raft quorum requires majority; minority returns UNAVAILABLE</td>
+          <td><span class="pill green">No data loss</span></td>
+        </tr>
+        <tr>
+          <td>Straggler shard (GC pause)</td>
+          <td>p99 latency spike</td>
+          <td>Hedged requests + speculative execution</td>
+          <td><span class="pill green">Transparent</span></td>
+        </tr>
+        <tr>
+          <td>Cold storage corruption</td>
+          <td>Historical query returns error</td>
+          <td>Rebuild from Kafka (WAL replay); checksums per file</td>
+          <td><span class="pill red">Hours (backfill)</span></td>
+        </tr>
+        <tr>
+          <td>Duplicate event delivery</td>
+          <td>Double-counted aggregates</td>
+          <td>Idempotency key + per-window Bloom filter</td>
+          <td><span class="pill green">Exactly-once</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  Distributed Data Aggregation System — HLD v1.0 &nbsp;·&nbsp;
+  Patterns: MapReduce · Dremel · Dapper · Raft &nbsp;·&nbsp;
+  Scale: 10K–100K events/sec · Strong consistency
+</footer>
+
+</div>
+</body>
+</html>
