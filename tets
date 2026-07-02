@@ -1,0 +1,79 @@
+
+
+---
+
+## Vision
+
+> Build a scraper that crawls through multiple data sources and presents data to frontline workers in a much more efficient way.
+
+---
+
+## Solution Overview (Option B — EC2 + S3 + Postgres)
+
+A sophisticated, cloud-based solution hosted entirely on AWS with a dedicated EC2 instance handling scraping, UI, and database. No additional on-premise infrastructure or maintenance required.
+
+| Attribute | Details |
+|---|---|
+| **Hosting** | AWS |
+| **Setup** | Cloud-based; no additional infra or maintenance needed |
+| **Integrations** | All AWS-based — minimal integration overhead |
+| **Sustainability** | Scalable as needed |
+| **Accessibility** | Any device with internet connection |
+| **End-user Flexibility** | Flexible data presentation |
+| **Permission / Export** | Download data by selection: CSV / PDF / Checklist |
+| **Support** | AWS shared support for infra; own team support for data |
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| **Scraping / Extraction** | Scrapy |
+| **Scheduler** | AWS EventBridge |
+| **Backend / API** | Python, FastAPI |
+| **Frontend / UI** | React, Next.js |
+| **Database** | PostgreSQL (self-managed on EC2) |
+| **Storage** | Amazon S3 (object storage + metadata index) |
+| **Data Processing** | EC2 |
+| **Containerisation** | Docker Compose |
+| **ChatBot** | TBD |
+| **Dashboard** | N/A (not in scope currently) |
+
+---
+
+## Monthly Cost Breakdown (Option B)
+
+**Estimated Total: ~$40.25 – $41.25/month (~₹3,824 – ₹3,919)**
+
+| Component | Spec / Sizing | Usage Assumption | Est. Cost (USD) | Est. Cost (INR) |
+|---|---|---|---|---|
+| EC2 (UI + Scraper combined) | t3.medium, on-demand | ~24×7 (730 hrs) | ~$30.70 | ₹2,885 |
+| EBS Volume | 30 GB gp3 | OS + app + PostgreSQL | $2.40 | ₹228 |
+| EventBridge Scheduler | Monthly trigger | — | $0 (free tier) | ₹0 |
+| Amazon S3 (storage) | Standard, 100 GB | Cumulative ~100 GB | $2.30 | ₹219 |
+| S3 Requests (GET/PUT) | — | ~100K req/month | $0.18 | ₹17 |
+| PostgreSQL (self-managed) | On EC2 instance | Metadata index | ~$0 (included in EC2) | ~₹0 |
+| EC2 Backup (AMI snapshots) | ~30 GB snapshot storage | Weekly snapshots | $1.50 | ₹143 |
+| Data Transfer Out | ~10 GB | Reduced by CloudFront | $0.90 | ₹86 |
+| CloudFront CDN | Free tier 1 TB/mo | — | ~$0 – $1 | ~₹0 – ₹95 |
+| Route 53 | 1 hosted zone | — | $0.50 | ₹48 |
+| ACM SSL Certificate | Public cert | — | $0 | ₹0 |
+| Parameter Store | Standard tier | Secrets / config | $0 | ₹0 |
+| SES (contact form) | — | ~1K emails/month | ~$0.10 | ~₹10 |
+| CloudWatch Alarms | 2–3 critical alarms | — | ~$1.00 | ~₹95 |
+| Domain Registration (.org) | Amortised | ~$12/yr | ~$1.00 | ~₹95 |
+| Elastic IP / misc | 1 EIP attached | — | $0 | ₹0 |
+| **Estimated Total** | | | **~$40.25 – $41.25** | **~₹3,824 – ₹3,919** |
+
+---
+
+## Key Decisions & Notes
+
+- **Single EC2 instance** (t3.medium) consolidates the UI, scraper, and database — keeps costs low but means all components share the same compute.
+- **PostgreSQL runs on EC2** (self-managed), not RDS — included in EC2 cost but requires manual backup and maintenance.
+- **S3** serves dual purpose: raw object storage for scraped data + metadata indexing alongside Postgres.
+- **CloudFront CDN** reduces data transfer costs and improves performance for end users.
+- **ChatBot** is TBD — not yet scoped or costed.
+- **Dashboard** is out of scope for the current phase.
+- Total ownership cost rounds to **~₹4,000/month** as a working estimate.
