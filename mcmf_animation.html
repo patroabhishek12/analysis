@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MCMF Payment Flow Animation</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  background: #ffffff;
+  color: #111827;
+  padding: 1.5rem;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.wrap { max-width: 800px; margin: 0 auto; }
+h1 { font-size: 1.35rem; font-weight: 600; margin-bottom: 4px; }
+.sub { color: #6b7280; font-size: 12px; margin-bottom: 1rem; }
+.gbox { border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; background: #fafafa; margin-bottom: 1rem; }
+.row { display: flex; gap: 12px; margin-bottom: 1rem; align-items: flex-start; }
+.sbox {
+  flex: 1; padding: 12px 14px;
+  background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; min-height: 88px;
+}
+.sn  { font-size: 10px; font-weight: 700; color: #2563eb; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
+.st  { font-size: 13px; font-weight: 600; color: #1e3a5f; margin-bottom: 4px; line-height: 1.3; }
+.sd  { font-size: 12px; color: #374151; line-height: 1.5; }
+.tlist { display: flex; flex-direction: column; gap: 7px; min-width: 215px; }
+.trow { display: flex; align-items: center; gap: 8px; padding: 7px 11px; border-radius: 6px; border: 1px solid #e5e7eb; background: #fff; }
+.tn { font-weight: 600; font-size: 13px; width: 22px; }
+.ta { font-size: 11px; color: #6b7280; flex: 1; }
+.badge { font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 10px; min-width: 74px; text-align: center; }
+.bp   { background: #f3f4f6; color: #6b7280; border: 1px solid #e5e7eb; }
+.bok  { background: #dcfce7; color: #166534; }
+.bfl  { background: #fee2e2; color: #991b1b; }
+.ctrls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.btn  { padding: 7px 15px; font-size: 13px; font-family: inherit; border-radius: 6px; border: 1px solid #d1d5db; background: #fff; color: #374151; cursor: pointer; transition: background 0.12s; }
+.btn:hover:not(:disabled)  { background: #f3f4f6; border-color: #9ca3af; }
+.btn:disabled { opacity: 0.35; cursor: default; }
+.btnp { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
+.btnp:hover:not(:disabled) { background: #1e40af; }
+.ctr  { font-size: 11px; color: #9ca3af; margin-left: auto; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; font-size: 11px; color: #6b7280; }
+.leg-item { display: flex; align-items: center; gap: 5px; }
+.leg-line { width: 24px; height: 3px; border-radius: 2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>MCMF Animation — Debit/Credit Transaction Processing</h1>
+  <p class="sub">Balance: ₹500 &nbsp;·&nbsp; T1=₹200 &nbsp;·&nbsp; T2=₹500 &nbsp;·&nbsp; T3=₹250 &nbsp;·&nbsp; One algorithm run → T1 ✓ &nbsp;T2 ✗ &nbsp;T3 ✓</p>
+
+  <div class="gbox">
+    <svg id="graph" viewBox="0 0 760 370" style="display:block;width:100%">
+      <defs>
+        <!-- Default grey arrow -->
+        <marker id="ma" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M1.5 2L8.5 5L1.5 8" fill="none" stroke="#d1d5db" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <!-- Blue arrow -->
+        <marker id="mb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M1.5 2L8.5 5L1.5 8" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <!-- Red arrow -->
+        <marker id="mr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M1.5 2L8.5 5L1.5 8" fill="none" stroke="#dc2626" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <!-- Glow filter for particle -->
+        <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <!-- ─── Invisible paths for particle animation (same d as visible edges) ─── -->
+      <path id="ap-ST1" d="M 110 186 Q 168 124 258 114" fill="none" stroke="none"/>
+      <path id="ap-ST2" d="M 113 200 L 257 200"          fill="none" stroke="none"/>
+      <path id="ap-ST3" d="M 110 214 Q 168 276 258 286" fill="none" stroke="none"/>
+      <path id="ap-T1B" d="M 322 108 Q 400 126 480 186" fill="none" stroke="none"/>
+      <path id="ap-T2B" d="M 323 200 L 477 200"          fill="none" stroke="none"/>
+      <path id="ap-T3B" d="M 322 292 Q 400 274 480 214" fill="none" stroke="none"/>
+      <path id="ap-BS"  d="M 543 200 L 657 200"          fill="none" stroke="none"/>
+
+      <!-- ─── Visible edges ─── -->
+      <path id="ep-ST1" d="M 110 186 Q 168 124 258 114" fill="none" stroke="#d1d5db" stroke-width="2"   marker-end="url(#ma)"/>
+      <path id="ep-ST2" d="M 113 200 L 257 200"          fill="none" stroke="#d1d5db" stroke-width="2"   marker-end="url(#ma)"/>
+      <path id="ep-ST3" d="M 110 214 Q 168 276 258 286" fill="none" stroke="#d1d5db" stroke-width="2"   marker-end="url(#ma)"/>
+      <path id="ep-T1B" d="M 322 108 Q 400 126 480 186" fill="none" stroke="#d1d5db" stroke-width="2"   marker-end="url(#ma)"/>
+      <path id="ep-T2B" d="M 323 200 L 477 200"          fill="none" stroke="#d1d5db" stroke-width="2"   marker-end="url(#ma)"/>
+      <path id="ep-T3B" d="M 322 292 Q 400 274 480 214" fill="none" stroke="#d1d5db" stroke-width="2"   marker-end="url(#ma)"/>
+      <path id="ep-BS"  d="M 543 200 L 657 200"          fill="none" stroke="#d1d5db" stroke-width="2"   marker-end="url(#ma)"/>
+
+      <!-- ─── Edge labels ─── -->
+      <text id="lbl-ST1" x="162" y="136" text-anchor="middle" font-size="10.5" fill="#9ca3af" font-family="inherit">cap:1 · cost:1</text>
+      <text id="lbl-ST2" x="185" y="188" text-anchor="middle" font-size="10.5" fill="#9ca3af" font-family="inherit">cap:1 · cost:2</text>
+      <text id="lbl-ST3" x="162" y="272" text-anchor="middle" font-size="10.5" fill="#9ca3af" font-family="inherit">cap:1 · cost:3</text>
+      <text id="lbl-T1B" x="400" y="118" text-anchor="middle" font-size="10.5" fill="#9ca3af" font-family="inherit">cap:₹200</text>
+      <text id="lbl-T2B" x="400" y="188" text-anchor="middle" font-size="10.5" fill="#9ca3af" font-family="inherit">cap:₹500</text>
+      <text id="lbl-T3B" x="400" y="282" text-anchor="middle" font-size="10.5" fill="#9ca3af" font-family="inherit">cap:₹250</text>
+      <text id="lbl-BS"  x="600" y="170" text-anchor="middle" font-size="10.5" fill="#9ca3af" font-family="inherit">₹500 remaining</text>
+
+      <!-- ─── Nodes ─── -->
+      <!-- S (source) -->
+      <circle cx="80" cy="200" r="33" fill="#e0f2fe" stroke="#0284c7" stroke-width="2"/>
+      <text x="80" y="197" text-anchor="middle" font-size="17" font-weight="700" fill="#0c4a6e" font-family="inherit">S</text>
+      <text x="80" y="214" text-anchor="middle" font-size="9.5" fill="#0369a1" font-family="inherit">Source</text>
+
+      <!-- T1 -->
+      <circle id="n-T1" cx="290" cy="100" r="33" fill="#f9fafb" stroke="#d1d5db" stroke-width="1.5"/>
+      <text x="290" y="97"  text-anchor="middle" font-size="15" font-weight="600" fill="#374151" font-family="inherit">T1</text>
+      <text x="290" y="113" text-anchor="middle" font-size="9.5" fill="#9ca3af" font-family="inherit">₹200 · order 1</text>
+
+      <!-- T2 -->
+      <circle id="n-T2" cx="290" cy="200" r="33" fill="#f9fafb" stroke="#d1d5db" stroke-width="1.5"/>
+      <text x="290" y="197" text-anchor="middle" font-size="15" font-weight="600" fill="#374151" font-family="inherit">T2</text>
+      <text x="290" y="213" text-anchor="middle" font-size="9.5" fill="#9ca3af" font-family="inherit">₹500 · order 2</text>
+
+      <!-- T3 -->
+      <circle id="n-T3" cx="290" cy="300" r="33" fill="#f9fafb" stroke="#d1d5db" stroke-width="1.5"/>
+      <text x="290" y="297" text-anchor="middle" font-size="15" font-weight="600" fill="#374151" font-family="inherit">T3</text>
+      <text x="290" y="313" text-anchor="middle" font-size="9.5" fill="#9ca3af" font-family="inherit">₹250 · order 3</text>
+
+      <!-- BAL (balance reservoir) -->
+      <circle id="n-BAL" cx="510" cy="200" r="33" fill="#fefce8" stroke="#ca8a04" stroke-width="2"/>
+      <text x="510" y="196" text-anchor="middle" font-size="12" font-weight="600" fill="#713f12" font-family="inherit">BAL</text>
+      <text id="bal-lbl" x="510" y="212" text-anchor="middle" font-size="10" fill="#92400e" font-family="inherit">₹500/500</text>
+
+      <!-- SINK -->
+      <circle cx="690" cy="200" r="33" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/>
+      <text x="690" y="200" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="600" fill="#14532d" font-family="inherit">SINK</text>
+
+      <!-- ─── Flow particle ─── -->
+      <circle id="particle" cx="-100" cy="-100" r="8" fill="#1d4ed8" opacity="0" filter="url(#glow)"/>
+
+      <!-- ─── Blocked X marker (shown only when T2 path is infeasible) ─── -->
+      <g id="xmark" opacity="0">
+        <line x1="580" y1="200" x2="657" y2="200" stroke="#dc2626" stroke-width="2.5" stroke-dasharray="5 3"/>
+        <circle cx="617" cy="200" r="17" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5"/>
+        <text x="617" y="200" text-anchor="middle" dominant-baseline="central" font-size="16" font-weight="700" fill="#dc2626" font-family="inherit">✕</text>
+        <text x="617" y="224" text-anchor="middle" font-size="9.5" fill="#dc2626" font-family="inherit">need ₹500, have ₹300</text>
+      </g>
+    </svg>
+  </div>
+
+  <!-- ─── Step info + Transaction status ─── -->
+  <div class="row">
+    <div class="sbox">
+      <div class="sn"  id="snum">Step 0 / 8</div>
+      <div class="st"  id="stitle">Initial Network</div>
+      <div class="sd"  id="sdesc">Balance ₹500. Three transactions queued in arrival order. MCMF encodes ordering via edge costs (T1=1, T2=2, T3=3) and finds the optimal set in one run.</div>
+    </div>
+    <div class="tlist">
+      <div class="trow">
+        <span class="tn">T1</span>
+        <span class="ta">₹200 · priority 1</span>
+        <span class="badge bp" id="b-T1">Pending</span>
+      </div>
+      <div class="trow">
+        <span class="tn">T2</span>
+        <span class="ta">₹500 · priority 2</span>
+        <span class="badge bp" id="b-T2">Pending</span>
+      </div>
+      <div class="trow">
+        <span class="tn">T3</span>
+        <span class="ta">₹250 · priority 3</span>
+        <span class="badge bp" id="b-T3">Pending</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Controls ─── -->
+  <div class="ctrls">
+    <button class="btn"  id="bprev" onclick="nav(-1)" disabled>← Prev</button>
+    <button class="btn btnp" id="bplay" onclick="togglePlay()">▶ Play</button>
+    <button class="btn"  id="bnext" onclick="nav(1)">Next →</button>
+    <button class="btn"  onclick="rst()" style="margin-left:8px">↺ Reset</button>
+    <span class="ctr" id="ctr">0 / 8</span>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="leg-item"><div class="leg-line" style="background:#2563eb"></div> Active path</div>
+    <div class="leg-item"><div class="leg-line" style="background:#dc2626;background-image:repeating-linear-gradient(90deg,#dc2626 0,#dc2626 5px,transparent 5px,transparent 8px)"></div> Blocked path</div>
+    <div class="leg-item"><div class="leg-line" style="background:#e5e7eb"></div> Saturated (full)</div>
+    <div class="leg-item"><div style="width:14px;height:14px;border-radius:50%;background:#dcfce7;border:1.5px solid #16a34a"></div> Fulfilled</div>
+    <div class="leg-item"><div style="width:14px;height:14px;border-radius:50%;background:#fee2e2;border:1.5px solid #dc2626"></div> Rejected</div>
+    <div class="leg-item"><div style="width:14px;height:14px;border-radius:50%;background:#1d4ed8"></div> Flow particle</div>
+  </div>
+</div>
+
+<script>
+// ─── Steps data ───────────────────────────────────────────────────────────────
+const STEPS = [
+  { title: 'Initial Network',
+    desc:  'Balance ₹500. T1=₹200, T2=₹500, T3=₹250 arrive in order. The graph encodes ordering via edge costs: T1 gets cost=1, T2 cost=2, T3 cost=3. MCMF will process all three in one run.',
+    hi: [], bl: [], sat: [], txn: {T1:'p',T2:'p',T3:'p'}, bal: 500, anim: null, xm: false },
+
+  { title: 'SPFA: Cheapest augmenting path → S → T1 → BAL → SINK',
+    desc:  'Bellman-Ford scan finds minimum-cost path from S to SINK. S→T1 has cost=1 (lowest). Path cost = 1+0+0 = 1. T1 needs ₹200. Available: ₹500 ≥ ₹200 ✓',
+    hi: ['ST1','T1B','BS'], bl: [], sat: [], txn: {T1:'p',T2:'p',T3:'p'}, bal: 500, anim: null, xm: false },
+
+  { title: 'Augmenting flow — ₹200 routed through T1',
+    desc:  'Sending 1 unit of flow along S→T1→BAL→SINK. T1 is fulfilled. ₹200 is deducted from the balance node. BAL remaining: ₹500 → ₹300.',
+    hi: ['ST1','T1B','BS'], bl: [], sat: [], txn: {T1:'ok',T2:'p',T3:'p'}, bal: 300, anim: ['ST1','T1B','BS'], xm: false },
+
+  { title: 'T1 ✓ Fulfilled — S→T1 edge saturated',
+    desc:  'T1 processed. The S→T1 edge is now at capacity (0/1 remaining) — no more flow can traverse it. Residual graph gets a backward edge T1→S for potential rerouting. Balance: ₹300.',
+    hi: [], bl: [], sat: ['ST1'], txn: {T1:'ok',T2:'p',T3:'p'}, bal: 300, anim: null, xm: false },
+
+  { title: 'SPFA: Evaluating next path → S → T2 → BAL → SINK (cost=2)',
+    desc:  'Next cheapest candidate path (cost=2). T2 needs ₹500. BAL→SINK residual capacity = ₹300. Is ₹300 ≥ ₹500? Checking...',
+    hi: ['ST2','T2B','BS'], bl: [], sat: ['ST1'], txn: {T1:'ok',T2:'p',T3:'p'}, bal: 300, anim: null, xm: false },
+
+  { title: 'T2 ✗ BLOCKED — bottleneck: BAL→SINK has ₹300, T2 needs ₹500',
+    desc:  'Path infeasible. BAL→SINK residual = ₹300 < ₹500 required. MCMF cannot augment this path. T2 is rejected. SPFA continues searching for other paths.',
+    hi: [], bl: ['ST2','T2B','BS'], sat: ['ST1'], txn: {T1:'ok',T2:'fail',T3:'p'}, bal: 300, anim: null, xm: true },
+
+  { title: 'SPFA: Next feasible path → S → T3 → BAL → SINK (cost=3)',
+    desc:  'Next cheapest feasible path (cost=3). T3 needs ₹250. BAL→SINK residual = ₹300. ₹300 ≥ ₹250 ✓. Path is feasible. Bottleneck capacity = 1.',
+    hi: ['ST3','T3B','BS'], bl: [], sat: ['ST1'], txn: {T1:'ok',T2:'fail',T3:'p'}, bal: 300, anim: null, xm: false },
+
+  { title: 'Augmenting flow — ₹250 routed through T3',
+    desc:  'Sending 1 unit of flow along S→T3→BAL→SINK. T3 fulfilled. ₹250 deducted from balance. BAL remaining: ₹300 → ₹50.',
+    hi: ['ST3','T3B','BS'], bl: [], sat: ['ST1'], txn: {T1:'ok',T2:'fail',T3:'ok'}, bal: 50, anim: ['ST3','T3B','BS'], xm: false },
+
+  { title: '✓ Algorithm complete — Optimal result in one run',
+    desc:  'No more augmenting paths exist. S→T1 and S→T3 saturated. S→T2 infeasible (only ₹50 left, T2 needs ₹500). Max flow = 2 transactions. Min cost = 1+3 = 4.',
+    hi: [], bl: [], sat: ['ST1','ST3'], txn: {T1:'ok',T2:'fail',T3:'ok'}, bal: 50, anim: null, xm: false, done: true }
+];
+
+const ALL_EDGES = ['ST1','ST2','ST3','T1B','T2B','T3B','BS'];
+let cur = 0, playing = false, animating = false, timer = null;
+
+// ─── Edge styling ─────────────────────────────────────────────────────────────
+function styleEdge(id, state, sat) {
+  const e = document.getElementById('ep-' + id);
+  if (!e) return;
+  if (sat) {
+    e.setAttribute('stroke', '#e8eaed');
+    e.setAttribute('stroke-width', '1.5');
+    e.setAttribute('stroke-dasharray', '');
+    e.setAttribute('opacity', '0.5');
+    e.setAttribute('marker-end', 'url(#ma)');
+  } else if (state === 'hi') {
+    e.setAttribute('stroke', '#2563eb');
+    e.setAttribute('stroke-width', '2.8');
+    e.setAttribute('stroke-dasharray', '');
+    e.setAttribute('opacity', '1');
+    e.setAttribute('marker-end', 'url(#mb)');
+  } else if (state === 'bl') {
+    e.setAttribute('stroke', '#dc2626');
+    e.setAttribute('stroke-width', '2');
+    e.setAttribute('stroke-dasharray', '5 3');
+    e.setAttribute('opacity', '1');
+    e.setAttribute('marker-end', 'url(#mr)');
+  } else {
+    e.setAttribute('stroke', '#d1d5db');
+    e.setAttribute('stroke-width', '2');
+    e.setAttribute('stroke-dasharray', '');
+    e.setAttribute('opacity', '1');
+    e.setAttribute('marker-end', 'url(#ma)');
+  }
+}
+
+// ─── Node styling ─────────────────────────────────────────────────────────────
+function styleNode(id, state) {
+  const n = document.getElementById('n-' + id);
+  if (!n) return;
+  const map = {
+    p:    ['#f9fafb', '#d1d5db', '1.5'],
+    ok:   ['#dcfce7', '#16a34a', '2.5'],
+    fail: ['#fee2e2', '#dc2626', '2.5'],
+  };
+  const [fill, stroke, sw] = map[state] || map.p;
+  n.setAttribute('fill', fill);
+  n.setAttribute('stroke', stroke);
+  n.setAttribute('stroke-width', sw);
+}
+
+// ─── Badge styling ────────────────────────────────────────────────────────────
+function styleBadge(id, state) {
+  const b = document.getElementById('b-' + id);
+  if (!b) return;
+  const map = {
+    p:    ['bp',  'Pending'],
+    ok:   ['bok', '✓ Fulfilled'],
+    fail: ['bfl', '✗ Rejected'],
+  };
+  const [cls, txt] = map[state] || map.p;
+  b.className = 'badge ' + cls;
+  b.textContent = txt;
+}
+
+// ─── Render a step ────────────────────────────────────────────────────────────
+function render(s, skipAnim) {
+  document.getElementById('snum').textContent   = 'Step ' + cur + ' / ' + (STEPS.length - 1);
+  document.getElementById('stitle').textContent = s.title;
+  document.getElementById('sdesc').textContent  = s.desc;
+  document.getElementById('ctr').textContent    = cur + ' / ' + (STEPS.length - 1);
+
+  ALL_EDGES.forEach(id => {
+    const sat = s.sat.includes(id);
+    const st  = s.hi.includes(id) ? 'hi' : s.bl.includes(id) ? 'bl' : 'def';
+    styleEdge(id, st, sat);
+  });
+
+  ['T1', 'T2', 'T3'].forEach(id => {
+    styleNode(id,  s.txn[id]);
+    styleBadge(id, s.txn[id]);
+  });
+
+  document.getElementById('bal-lbl').textContent = '₹' + s.bal + '/500';
+  document.getElementById('lbl-BS').textContent  = '₹' + s.bal + ' remaining';
+  document.getElementById('xmark').setAttribute('opacity', s.xm ? '1' : '0');
+
+  document.getElementById('bprev').disabled = cur === 0 || animating;
+  document.getElementById('bnext').disabled = cur === STEPS.length - 1 || animating;
+
+  if (s.anim && !skipAnim) animateParticle(s.anim, 1600);
+}
+
+// ─── Particle animation ───────────────────────────────────────────────────────
+function animateParticle(pathIds, totalDuration) {
+  animating = true;
+  document.getElementById('bprev').disabled = true;
+  document.getElementById('bnext').disabled = true;
+
+  const lengths = pathIds.map(id => {
+    const el = document.getElementById('ap-' + id);
+    return el ? el.getTotalLength() : 80;
+  });
+  const totalLen = lengths.reduce((a, b) => a + b, 0);
+  const pt = document.getElementById('particle');
+  const t0 = performance.now();
+
+  function frame(now) {
+    const t   = Math.min((now - t0) / totalDuration, 1);
+    const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;  // ease-in-out
+    let rem = ease * totalLen;
+    let seg = 0;
+    while (seg < lengths.length - 1 && rem >= lengths[seg]) {
+      rem -= lengths[seg]; seg++;
+    }
+    const el = document.getElementById('ap-' + pathIds[seg]);
+    if (el) {
+      const frac = lengths[seg] > 0 ? Math.min(rem / lengths[seg], 1) : 1;
+      const pp = el.getPointAtLength(frac * lengths[seg]);
+      pt.setAttribute('cx', pp.x);
+      pt.setAttribute('cy', pp.y);
+      pt.setAttribute('opacity', '0.95');
+    }
+    if (t < 1) {
+      requestAnimationFrame(frame);
+    } else {
+      pt.setAttribute('opacity', '0');
+      pt.setAttribute('cx', '-100');
+      pt.setAttribute('cy', '-100');
+      animating = false;
+      document.getElementById('bprev').disabled = cur === 0;
+      document.getElementById('bnext').disabled = cur === STEPS.length - 1;
+      if (playing) schedNext();
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+// ─── Navigation ───────────────────────────────────────────────────────────────
+function nav(dir) {
+  if (animating) return;
+  const next = cur + dir;
+  if (next < 0 || next >= STEPS.length) return;
+  cur = next;
+  render(STEPS[cur], dir < 0);  // skip animation when going backwards
+}
+
+function togglePlay() {
+  if (playing) {
+    playing = false;
+    clearTimeout(timer);
+    document.getElementById('bplay').textContent = '▶ Play';
+    return;
+  }
+  if (cur >= STEPS.length - 1) rst();
+  playing = true;
+  document.getElementById('bplay').textContent = '⏸ Pause';
+  advance();
+}
+
+function advance() {
+  if (!playing) return;
+  if (cur >= STEPS.length - 1) {
+    playing = false;
+    document.getElementById('bplay').textContent = '▶ Play';
+    return;
+  }
+  cur++;
+  render(STEPS[cur]);
+  if (!STEPS[cur].anim) schedNext();
+  // if anim present, schedNext() is called after animation completes
+}
+
+function schedNext() {
+  if (!playing) return;
+  clearTimeout(timer);
+  timer = setTimeout(advance, STEPS[cur].done ? 0 : 1800);
+}
+
+function rst() {
+  playing = false;
+  animating = false;
+  clearTimeout(timer);
+  document.getElementById('bplay').textContent = '▶ Play';
+  const pt = document.getElementById('particle');
+  pt.setAttribute('opacity', '0');
+  pt.setAttribute('cx', '-100');
+  pt.setAttribute('cy', '-100');
+  cur = 0;
+  render(STEPS[0], true);
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+render(STEPS[0], true);
+</script>
+</body>
+</html>
